@@ -1,0 +1,239 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Q4_solved.ipynb",
+      "provenance": [],
+      "collapsed_sections": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/VitorRibeiro324-lab/D3-Challenge/blob/master/Breast%20Cancer%20COLAB\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "MJbqQOeAo9zT",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# Install Java, Spark, and Findspark\n",
+        "!apt-get install openjdk-8-jdk-headless -qq > /dev/null\n",
+        "!wget -q http://www-us.apache.org/dist/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz\n",
+        "!tar xf spark-2.4.5-bin-hadoop2.7.tgz\n",
+        "!pip install -q findspark\n",
+        "\n",
+        "# Set Environment Variables\n",
+        "import os\n",
+        "os.environ[\"JAVA_HOME\"] = \"/usr/lib/jvm/java-8-openjdk-amd64\"\n",
+        "os.environ[\"SPARK_HOME\"] = \"/content/spark-2.4.5-bin-hadoop2.7\"\n",
+        "\n",
+        "# Start a SparkSession\n",
+        "import findspark\n",
+        "findspark.init()"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "IQrYXj6Oo_pX",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "from pyspark.sql import SparkSession\n",
+        "from pyspark.sql.functions import desc\n",
+        "from pyspark import SparkFiles\n",
+        "spark = SparkSession.builder.appName(\"Q4\").getOrCreate()"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "KFEJMGsOpJ4l",
+        "colab_type": "code",
+        "outputId": "edaac25a-03be-4356-8cbc-d8a7a77e7629",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 67
+        }
+      },
+      "source": [
+        "# Load in user_data.csv from S3 into a DataFrame\n",
+        "import os\n",
+        "os.environ['KAGGLE_USERNAME'] = \"vlr324\" # username from the json file\n",
+        "os.environ['KAGGLE_KEY'] = \"e5a1d0a21a41de581507fd5440fcbb12\" # key from the json file\n",
+        "!kaggle datasets download -d paultimothymooney/breast-histopathology-images # api copied from kaggle"
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Downloading breast-histopathology-images.zip to /content\n",
+            "100% 3.09G/3.10G [00:37<00:00, 122MB/s]\n",
+            "100% 3.10G/3.10G [00:37<00:00, 88.8MB/s]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "frLzZ3iMpNWF",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import zipfile\n",
+        "\n",
+        "zipref = zipfile.ZipFile('breast-histopathology-images.zip', 'r')\n",
+        "zipref.extractall()\n",
+        "zipref.close()\n"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "DXgAxK7ApVld",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "from google.colab import drive"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ktnhU7m017iR",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 121
+        },
+        "outputId": "592511e3-830a-4bcc-840d-f6c292c9e5e0"
+      },
+      "source": [
+        "drive.mount('/content/')"
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Go to this URL in a browser: https://accounts.google.com/o/oauth2/auth?client_id=947318989803-6bn6qk8qdgf4n4g3pfee6491hc0brc4i.apps.googleusercontent.com&redirect_uri=urn%3aietf%3awg%3aoauth%3a2.0%3aoob&response_type=code&scope=email%20https%3a%2f%2fwww.googleapis.com%2fauth%2fdocs.test%20https%3a%2f%2fwww.googleapis.com%2fauth%2fdrive%20https%3a%2f%2fwww.googleapis.com%2fauth%2fdrive.photos.readonly%20https%3a%2f%2fwww.googleapis.com%2fauth%2fpeopleapi.readonly\n",
+            "\n",
+            "Enter your authorization code:\n",
+            "··········\n",
+            "Mounted at /content/drive\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WLNo0TDk17vq",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 706
+        },
+        "outputId": "b030a458-f9bb-4240-c207-49881de040ae"
+      },
+      "source": [
+        "!ls \"/content/\""
+      ],
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "10253  12242  12895  13459  15472  8916  9225\n",
+            "10254  12626  12896  13460  15473  8917  9226\n",
+            "10255  12748  12897  13461  15510  8918  9227\n",
+            "10256  12749  12898  13462  15512  8950  9228\n",
+            "10257  12750  12900  13591  15513  8951  9250\n",
+            "10258  12751  12901  13613  15514  8955  9254\n",
+            "10259  12752  12905  13616  15515  8956  9255\n",
+            "10260  12810  12906  13617  15516  8957  9256\n",
+            "10261  12811  12907  13666  15632  8959  9257\n",
+            "10262  12817  12908  13687  15633  8974  9258\n",
+            "10264  12818  12909  13688  15634  8975  9259\n",
+            "10268  12819  12910  13689  15839  8980  9260\n",
+            "10269  12820  12911  13691  15840  8984  9261\n",
+            "10272  12821  12929  13692  15902  9022  9262\n",
+            "10273  12822  12930  13693  15903  9023  9265\n",
+            "10274  12823  12931  13694  16014  9029  9266\n",
+            "10275  12824  12932  13916  16085  9035  9267\n",
+            "10276  12826  12933  14078  16165  9036  9290\n",
+            "10277  12867  12934  14079  16166  9037  9291\n",
+            "10278  12868  12935  14081  16167  9041  9319\n",
+            "10279  12869  12947  14082  16531  9043  9320\n",
+            "10282  12870  12948  14153  16532  9044  9321\n",
+            "10285  12871  12949  14154  16533  9073  9322\n",
+            "10286  12872  12951  14155  16534  9075  9323\n",
+            "10288  12873  12954  14156  16550  9076  9324\n",
+            "10290  12875  12955  14157  16551  9077  9325\n",
+            "10291  12876  13018  14188  16552  9078  9344\n",
+            "10292  12877  13019  14189  16553  9081  9345\n",
+            "10293  12878  13020  14190  16554  9083  9346\n",
+            "10295  12879  13021  14191  16555  9123  9347\n",
+            "10299  12880  13022  14192  16568  9124  9381\n",
+            "10300  12881  13023  14209  16569  9125  9382\n",
+            "10301  12882  13024  14210  16570  9126  9383\n",
+            "10302  12883  13025  14211  16895  9135  breast-histopathology-images.zip\n",
+            "10303  12884  13106  14212  16896  9173  drive\n",
+            "10304  12886  13400  14213  8863   9174  IDC_regular_ps50_idx5\n",
+            "10305  12890  13401  14304  8864   9175  sample_data\n",
+            "10306  12891  13402  14305  8865   9176  spark-2.4.5-bin-hadoop2.7\n",
+            "10307  12892  13403  14306  8867   9177  spark-2.4.5-bin-hadoop2.7.tgz\n",
+            "10308  12893  13404  14321  8913   9178\n",
+            "12241  12894  13458  15471  8914   9181\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "IqIIvMEj2iX2",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    }
+  ]
+}
